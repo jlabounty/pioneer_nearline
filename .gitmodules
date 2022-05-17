@@ -1,0 +1,4 @@
+[submodule "analysis/master"]
+	path = analysis/master
+	url = https://bitbucket.org/schwendimann_p/readwd/src/master/
+	branch = "PIONEER2022"
