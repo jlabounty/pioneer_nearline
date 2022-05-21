@@ -22,7 +22,7 @@ def create_index(indir, outfile='static/file-index.html'):
         run_folders = os.listdir(indir)
         run_folders.sort()
         for ri in run_folders:
-            if('.csv') in ri:
+            if('.csv') in ri or 'tar' in ri:
                 continue
             run = int(ri.split("run")[1])
             run_folder = os.path.join(indir, ri,'data')
@@ -30,6 +30,8 @@ def create_index(indir, outfile='static/file-index.html'):
             subruns = os.listdir(run_folder)
             subruns.sort()
 
+            f.write(f'<li> Run {run} (tarball <a href="/runs/{run}/{run+1}" id="{run}">here<a/>) \n')
+            f.write("<ul> \n")
             for si in subruns:
                 print(si)
                 subrun = si.split("subrun")[-1]
@@ -39,9 +41,15 @@ def create_index(indir, outfile='static/file-index.html'):
                 # f.write("<UL>\n")
                 for file in os.listdir(thisdir):
                     thisfile = os.path.join(thisdir[3:], file)
-                    f.write(f"<p>   → <a href='browse/{thisfile}'>{file}<p/><a/> \n")
+                    f.write(f"<p>   → <a href='browse/{thisfile}'>{file}")
+                    if('.root' in file):
+                        f.write(f' (<a href="/jsroot?file=browse/{thisfile}">Online viewer<a/>)')
+                    f.write('<p/><a/>')
                 # f.write("<UL/>\n")
-                f.write("</li> \n")
+                f.write("</li>")
+            f.write("</ul> \n")
+        # for i in range(1000):
+        #     f.write(f"<li> hi {i} <li/>")
 
         f.write('</OL> \n')
         f.write('</div> \n')

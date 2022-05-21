@@ -121,7 +121,7 @@ def do_post_processing(run,subrun):
             key = f'run_{key}'
         dfi[key] = val
 
-    print(f"{run_data=}")
+    # print(f"{run_data=}")
     try:
         subrun_data = run_data['subrun'][str(subrun)]
         for key, val in subrun_data.items():
@@ -129,9 +129,33 @@ def do_post_processing(run,subrun):
                 key = f'subrun_{key}'
             dfi[key] = val
     except:
-        print('subrun data not found')
+        print('Warning: subrun data not found')
 
-    print(dfi)
+    # get the means/stdevs from the csv file
+    print('getting means')
+    csvfile = os.path.join(outdir, 'profile.csv')
+    try:
+        if(os.path.exists(csvfile)):
+            # the first line of the csv is: 
+            with open(csvfile, 'r') as f:
+                print('found file', f)
+                for data in f:
+                    # print(f[0])
+                    # data = f[0].strip()
+                    # print(data)
+                    data = [float(x) for x in data.split(",")]
+                    print('This beam data:', data)
+                    dfi['beam_mean_x'] = data[0]
+                    dfi['beam_mean_y'] = data[1]
+                    dfi['beam_sigma_x'] = data[2]
+                    dfi['beam_sigma_x'] = data[2]
+                    dfi['beam_norm'] = data[4]
+                    dfi['beam_timestamp'] = data[5]
+
+                    break
+    except:
+        print("Warning: beam csv data not found.")
+    print(f"{dfi=}")
 
     # append this dict to the dataframe stored in the RUN_DB
     append_to_df(RUN_DB, dfi)
@@ -171,4 +195,4 @@ if __name__ == '__main__':
         # if(sys.argv[1]):
         process_new_files()
     else:
-        autoprocess_files()
+        autoprocess_files(5) # minutes

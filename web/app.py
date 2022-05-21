@@ -21,6 +21,8 @@ import plotly.express as px
 FIG_DATATABLE = None
 FIG_PLOTS = None
 FIG_SCATTER = None
+BASE_DIR = '/home/jlab/github/pioneer_nearline/web/static/'
+
 
 app = Flask(__name__, template_folder='static')
 dashboard, df = create_dashboard(app)
@@ -339,11 +341,15 @@ def files():
     create_index('../processed/', outfile='static/web/file-index.html')
     return render_template('web/file-index.html')
 
+@app.route("/files/<int:run>")
+def files_run(run):
+    # from update_index import create_index
+    # create_index('../processed/', outfile='static/web/file-index.html')
+    # return render_template('web/file-index.html')
+    return flask.redirect(f'/files#{run}')
+
 @app.route('/browse/<path:req_path>')
 def dir_listing(req_path):
-    # import os
-    BASE_DIR = '/home/jlab/github/pioneer_nearline/web/static/'
-
     # Joining the base and the requested path
     abs_path = os.path.join(BASE_DIR, req_path)
     print(abs_path)
@@ -356,6 +362,32 @@ def dir_listing(req_path):
     if os.path.isfile(abs_path):
         return flask.send_file(abs_path)
 
+@app.route('/runs/<int:run1>/<int:run2>')
+def get_run_data(run1, run2):
+    '''
+        tars up run data and serves it to the user
+    '''
+    outfile = os.path.join(BASE_DIR,f'processed/tarfiles/nearline_runs_{run1}_{run2}.tar.gz')
+    if(not os.path.exists(outfile)):
+        command = f'tar -zcvf {outfile} -C {BASE_DIR}'
+        for run in range(run1, run2+1):
+            thisdir = f'processed/run{run}'
+            if(os.path.exists(os.path.join(BASE_DIR, thisdir))):
+                command += f' {thisdir} '
+
+        print(command)
+        os.system(command)
+    else:
+        print("Already processed!")
+
+    if os.path.isfile(outfile):
+        return flask.send_file(outfile)
+    else:
+        return flask.abort(404)
+
+@app.route("/jsroot")
+def jsroot():
+    return render_template('web/jsroot.html')
 
 if __name__ == "__main__":
     app.run(host="localhost", port=1234, debug=True)
