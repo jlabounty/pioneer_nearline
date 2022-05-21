@@ -1,3 +1,5 @@
+# from process_data import make_indir_outdir
+# from pickle import NONE
 from dashboard import create_dashboard
 import flask
 from flask import Flask
@@ -15,6 +17,10 @@ from flask import current_app as app
 from dash.dependencies import Input, Output
 from dash import html, dash, dash_table, dcc
 import plotly.express as px
+
+FIG_DATATABLE = None
+FIG_PLOTS = None
+FIG_SCATTER = None
 
 app = Flask(__name__, template_folder='static')
 dashboard, df = create_dashboard(app)
@@ -48,11 +54,25 @@ def refresh_runlog(click):
 def render_tab_content(value):
     app.logger.error("Rendering tab content...")
     if(value == 'runlog'):
-        return render_datatable()
+        global FIG_DATATABLE
+        # print( FIG_DATATABLE)
+        if(FIG_DATATABLE is None):
+            print('ding!!!')
+            FIG_DATATABLE = render_datatable()
+        else:
+            print("dong")
+        return FIG_DATATABLE
     elif(value == 'plot'):
-        return html.Div([html.H1("TODO: Add plotly express plot here")])
+        global FIG_PLOTS
+        # return html.Div([html.H1("TODO: Add plotly express plot here")])
+        if(FIG_PLOTS is None):
+            FIG_PLOTS = render_display()
+        return FIG_PLOTS
     elif(value == 'scatter'):
-        return render_runlog_scatter()
+        global FIG_SCATTER
+        if(FIG_SCATTER is None):
+            FIG_SCATTER = render_runlog_scatter()
+        return FIG_SCATTER
 
 
 # @dashboard.callback(
@@ -67,9 +87,10 @@ def render_datatable():
                     [{"name": i, "id": i, "hidable":True, "selectable":True} for i in df.df.columns],
                     filter_action='native',
                     id='runlog-datatable',
-
+                    page_size=20,
                     style_table={
-                        'height': 400,
+                        # 'height': 400,
+                        'overflowX': 'scroll'
                     },
                     style_data={
                         'width': '150px', 'minWidth': '150px', 'maxWidth': '150px',
@@ -91,11 +112,11 @@ def render_runlog_scatter():
                         'run',
                         id='crossfilter-xaxis-column',
                     ),
-                    dcc.RadioItems(
+                    dcc.Dropdown(
                         ['Linear', 'Log'],
                         'Linear',
                         id='crossfilter-xaxis-type',
-                        labelStyle={'display': 'inline-block', 'marginTop': '5px'}
+                        # labelStyle={'display': 'inline-block', 'marginTop': '5px'}
                     )
                 ],
                 style={'width': '49%', 'display': 'inline-block'}),
@@ -103,21 +124,21 @@ def render_runlog_scatter():
                 html.Div([
                     dcc.Dropdown(
                         df.df.columns.unique(),
-                        'm1',
+                        'subrun',
                         id='crossfilter-yaxis-column'
                     ),
-                    dcc.RadioItems(
+                    dcc.Dropdown(
                         ['Linear', 'Log'],
                         'Linear',
                         id='crossfilter-yaxis-type',
-                        labelStyle={'display': 'inline-block', 'marginTop': '5px'}
+                        # labelStyle={'display': 'inline-block', 'marginTop': '5px'}
                     )
                 ], style={'width': '49%', 'float': 'right', 'display': 'inline-block'}),
-                html.Div([dcc.Dropdown(
-                        df.df.columns.unique(),
-                        'm1',
-                        id='crossfilter-hover-column'
-                    )])
+                # html.Div([dcc.Dropdown(
+                #         df.df.columns.unique(),
+                #         'subrun',
+                #         id='crossfilter-hover-column'
+                #     )])
             ], style={
                 'padding': '10px 10px'
             }),
@@ -192,11 +213,11 @@ def update_x_timeseries(yaxis_column_name, axis_type):
     Input('crossfilter-yaxis-column', 'value'),
     Input('crossfilter-xaxis-type', 'value'),
     Input('crossfilter-yaxis-type', 'value'),
-    Input('crossfilter-hover-column', 'value'),
+    # Input('crossfilter-hover-column', 'value'),
     # Input('crossfilter-year--slider', 'value')
     )
 def update_graph(xaxis_column_name, yaxis_column_name,
-                 xaxis_type, yaxis_type, indicator_name):
+                 xaxis_type, yaxis_type):
     # dff = df[df['Year'] == year_value]
     app.logger.error("Rendering data on graph...")
     dff = df.df
@@ -204,7 +225,7 @@ def update_graph(xaxis_column_name, yaxis_column_name,
     fig = px.scatter(
         x=dff[xaxis_column_name],
         y=dff[yaxis_column_name],
-        hover_name=dff[indicator_name]
+        # hover_name=dff[indicator_name]
     )
     print(dff[xaxis_column_name])
 
@@ -216,16 +237,92 @@ def update_graph(xaxis_column_name, yaxis_column_name,
 
     return fig
     
-
-def update_display(column):
+# @dashboard.callback(
+#     Output('profile-figure', 'figure'),
+#     # Input('runlog-datatable', ''),
+#     Input('runlog-datatable', 'derived_virtual_row_ids'),
+#     Input('runlog-datatable', 'selected_row_ids'),
+#     Input('runlog-datatable', 'active_cell')
+# )
+def render_display():
     '''
         Updates the displayed scan based on the run/subrun which was clicked
     '''
+    # print(derived_ids, selected_ids, active_cell)
     # get the run/subrun number from the plot
 
-    # get the associated data file (if it exists, if not create it)
+    return(
+        html.Div(
+            [dcc.Dropdown(
+                        list(df.df['run'].unique()),
+                        df.df['run'][0],
+                        id='crossfilter-run-select',
+                    ),
+            dcc.Dropdown(
+                        list(df.df['subrun'].unique()),
+                        df.df['subrun'][0],
+                        id='crossfilter-subrun-select',
+            )]
+        ),
+        dcc.Graph(id='profile-plot'),
+        html.Iframe(src="",
+            width="750",height="400",
+            id='profile-pdf-display'
+            # type="application/pdf"
+        )
+    )
 
-    # update the plot on Tab 2
+def make_outdir(run,subrun):
+    return f'../processed/run{run}/data/subrun{subrun}/'
+
+# @dashboard.callback()
+
+def get_profile_pdf(subrundir):
+    thispath = os.path.join('assets',subrundir[3:], 'profile.pdf')
+    print(thispath)
+    if(not os.path.exists(thispath)):
+        return None
+    return thispath
+
+@dashboard.callback(
+    Output('profile-plot', 'figure'),
+    Output('profile-pdf-display', 'src'),
+    Input("crossfilter-run-select", 'value'),
+    Input("crossfilter-subrun-select", 'value')
+)
+def update_display(run, subrun):
+
+    # get the associated data file (if it exists, if not create it)
+    # dfi = df.df.loc(df.df['run'] == int(run)).loc(df.df['subrun'] == int(subrun))
+    outdir = make_outdir(run,subrun)
+    csvfile = os.path.join(outdir,'profile.csv')
+    print(csvfile)
+    if(not os.path.exists(csvfile)):
+        print("ERROR: CSV file not found")
+        return px.scatter([],[])
+
+    dfi = pandas.read_csv(csvfile, header=None)
+    print(dfi.head)
+    return (px.scatter(
+        x=dfi[0],
+        y=dfi[1],
+        color=dfi[2],
+        # hover_data=[0,1,2,3,4],
+        # marker_symbol='s',
+        # mode='markers'
+        width=500, height=400
+    )), get_profile_pdf( outdir )
+    
+    # return px.scatter([1,2,3], [3,4,5])
+
+    
+
+def make_profile(infile):
+    return html.Div("todo")
+
+@app.route("/generic.html")
+def generic():
+    return render_template("web/generic.html")
 
 @app.route("/")
 def home():
@@ -235,6 +332,29 @@ def home():
     return render_template(
         'web/index.html'
     )
+
+@app.route("/files")
+def files():
+    from update_index import create_index
+    create_index('../processed/', outfile='static/web/file-index.html')
+    return render_template('web/file-index.html')
+
+@app.route('/browse/<path:req_path>')
+def dir_listing(req_path):
+    # import os
+    BASE_DIR = '/home/jlab/github/pioneer_nearline/web/static/'
+
+    # Joining the base and the requested path
+    abs_path = os.path.join(BASE_DIR, req_path)
+    print(abs_path)
+
+    # Return 404 if path doesn't exist
+    if not os.path.exists(abs_path):
+        return flask.abort(404)
+
+    # Check if path is a file and serve
+    if os.path.isfile(abs_path):
+        return flask.send_file(abs_path)
 
 
 if __name__ == "__main__":

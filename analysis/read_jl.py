@@ -10,6 +10,9 @@
  setup described in the json files. Once the files
  are read, this will visualise the output data
  using draw.py.
+
+ Took classes from Patricks version, but changed main logic
+ -Josh
 """
 # from ast import parse
 # from asyncio import subprocess
@@ -216,6 +219,9 @@ def main():
     cfg.WriteToFile(outname)
 
     binary_files = get_binary_files(subrun_dir)
+    if(len(binary_files) < 1):
+        print("Found no files to process. Exiting.")
+        return
     output_files = [x.replace('.bin', '.root').replace(subrun_dir, output_dir) for x in binary_files]
 
     command = f'readWD -i {outname} -o {output_dir}/ {" ".join(binary_files)}'

@@ -1,6 +1,11 @@
 # pioneer_nearline
 Nearline analysis code and web interface for the PIONEER beam test May 2022
 
+Two symbolic links should be set up when using this repository
+
+- ./data/ -> Path where the binary WD files are being written do
+- ./processed/ -> Path to where to write the nearline analyzed files.
+
 In order to set up, please add the following to the crontab of the Nearline machine
 
 ```
