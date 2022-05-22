@@ -77,10 +77,6 @@ def render_tab_content(value):
         return FIG_SCATTER
 
 
-# @dashboard.callback(
-#     Output('tab-content', 'children'),
-#     Input('tabs', 'value')
-# )
 def render_datatable():
     app.logger.error("Rendering Datatable...")
     return html.Div([
@@ -210,7 +206,6 @@ def update_y_timeseries(xaxis_column_name, axis_type,runlow, runhigh, subrunlow,
     title = xaxis_column_name
     return create_time_series(dff, axis_type, title)
 
-
 @dashboard.callback(
     Output('y-time-series', 'figure'),
     # Input('crossfilter-indicator-scatter', 'hoverData'),
@@ -295,11 +290,43 @@ def render_display():
                         id='crossfilter-subrun-select',
             )]
         ),
-        dcc.Graph(id='profile-plot'),
-        html.Iframe(src="",
-            width="750",height="400",
-            id='profile-pdf-display'
-            # type="application/pdf"
+        html.Div(
+            [
+                html.Div(
+                    dcc.Graph(id='profile-plot'),
+                    style={'width': '30%', 'display': 'inline-block'}
+                ),
+                html.Div(
+                    dcc.Graph(id='profile-plot-x'),
+                    style={'width': '30%', 'display': 'inline-block'}
+                ),
+                html.Div(
+                    dcc.Graph(id='profile-plot-y'),
+                    style={'width': '30%', 'display': 'inline-block'}
+                ),
+            ],style={'text-align':'center'}
+        ),
+        html.Div(
+            [
+                html.Div(
+                    dcc.Graph(id='times-display-global'),
+                    style={'width': '49%', 'display': 'inline-block'}
+                ),
+                html.Div(
+                    dcc.Graph(id='times-display-single'),
+                    style={'width': '49%', 'display': 'inline-block'}
+                ),
+            ],style={'text-align':'center'}
+        ),
+        html.Div(
+            [
+                html.Iframe(src="",
+                    width="750",height="400",
+                    id='profile-pdf-display'
+                    # type="application/pdf"
+                )
+            ], 
+            style={'width': '49%', 'display': 'inline-block', 'text-align':'center'}
         )
     )
 
@@ -318,6 +345,8 @@ def get_profile_pdf(subrundir):
 @dashboard.callback(
     Output('profile-plot', 'figure'),
     Output('profile-pdf-display', 'src'),
+    Output('profile-plot-x', 'figure'),
+    Output('profile-plot-y', 'figure'),
     Input("crossfilter-run-select", 'value'),
     Input("crossfilter-subrun-select", 'value')
 )
@@ -332,17 +361,40 @@ def update_display(run, subrun):
         print("ERROR: CSV file not found")
         return px.scatter([],[])
 
-    dfi = pandas.read_csv(csvfile, header=None)
+    dfi = pandas.read_csv(csvfile, header=None, skiprows=1)
+    
+    x_xs = []
+    x_ys = []
+    for xi, dfii in dfi.groupby(by=0):
+        x_xs.append(xi)
+        x_ys.append(dfii[2].sum())
+
+    y_xs = []
+    y_ys = []
+    for xi, dfii in dfi.groupby(by=1):
+        y_xs.append(xi)
+        y_ys.append(dfii[2].sum())
+
     print(dfi.head)
-    return (px.scatter(
-        x=dfi[0],
-        y=dfi[1],
-        color=dfi[2],
-        # hover_data=[0,1,2,3,4],
-        # marker_symbol='s',
-        # mode='markers'
-        width=500, height=400
-    )), get_profile_pdf( outdir )
+    return (
+        (px.scatter(
+            x=dfi[0],
+            y=dfi[1],
+            color=dfi[2],
+            # hover_data=[0,1,2,3,4],
+            # marker_symbol='s',
+            # mode='markers'
+            width=500, height=400,
+            labels={"x":'x-position [mm]', 'y':'y-position [mm]'}
+        )),
+        get_profile_pdf( outdir ),
+        (px.scatter(
+            x=x_xs, y=x_ys, width=500, height=400, labels={'x':'x-position', 'y':'Beam Amplitude'})
+        ),
+        (px.scatter(
+            x=y_xs, y=y_ys, width=500, height=400, labels={'x':'y-position', 'y':'Beam Amplitude'})
+        ),
+    )
     
     # return px.scatter([1,2,3], [3,4,5])
 
