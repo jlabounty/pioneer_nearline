@@ -145,6 +145,12 @@ def render_runlog_scatter():
                 'padding': '10px 10px'
             }),
             html.Div([
+                dcc.Input(id='input-run-low', type='number', placeholder='Run Low', debounce=True),
+                dcc.Input(id='input-run-high', type='number', placeholder='Run High', debounce=True),
+                dcc.Input(id='input-subrun-low', type='number', placeholder='Subrun Low', debounce=True),
+                dcc.Input(id='input-subrun-high', type='number', placeholder='Subrun High', debounce=True),
+            ], style={'text-align':'center'}),
+            html.Div([
                  html.Div([
                     dcc.Graph(
                         id='crossfilter-indicator-scatter',
@@ -191,10 +197,16 @@ def create_time_series(dff, axis_type, title):
     Output('x-time-series', 'figure'),
     # Input('crossfilter-indicator-scatter', 'hoverData'),
     Input('crossfilter-xaxis-column', 'value'),
-    Input('crossfilter-xaxis-type', 'value'))
-def update_y_timeseries(xaxis_column_name, axis_type):
+    Input('crossfilter-xaxis-type', 'value'),
+    Input('input-run-low', 'value'),
+    Input('input-run-high', 'value'),
+    Input('input-subrun-low', 'value'),
+    Input('input-subrun-high', 'value'),
+)
+def update_y_timeseries(xaxis_column_name, axis_type,runlow, runhigh, subrunlow,subrunhigh):
     # country_name = hoverData['points'][0]['customdata']
-    dff = df.df
+    # dff = df.df
+    dff = filter_df_by_run(df, runlow,runhigh, subrunlow,subrunhigh)
     title = xaxis_column_name
     return create_time_series(dff, axis_type, title)
 
@@ -203,9 +215,15 @@ def update_y_timeseries(xaxis_column_name, axis_type):
     Output('y-time-series', 'figure'),
     # Input('crossfilter-indicator-scatter', 'hoverData'),
     Input('crossfilter-yaxis-column', 'value'),
-    Input('crossfilter-yaxis-type', 'value'))
-def update_x_timeseries(yaxis_column_name, axis_type):
-    dff = df.df
+    Input('crossfilter-yaxis-type', 'value'),
+    Input('input-run-low', 'value'),
+    Input('input-run-high', 'value'),
+    Input('input-subrun-low', 'value'),
+    Input('input-subrun-high', 'value'),
+    )
+def update_x_timeseries(yaxis_column_name, axis_type,runlow, runhigh, subrunlow,subrunhigh):
+    # dff = df.df
+    dff = filter_df_by_run(df, runlow,runhigh, subrunlow,subrunhigh)
     title = yaxis_column_name
     return create_time_series(dff, axis_type, title)
 
@@ -215,14 +233,18 @@ def update_x_timeseries(yaxis_column_name, axis_type):
     Input('crossfilter-yaxis-column', 'value'),
     Input('crossfilter-xaxis-type', 'value'),
     Input('crossfilter-yaxis-type', 'value'),
+    Input('input-run-low', 'value'),
+    Input('input-run-high', 'value'),
+    Input('input-subrun-low', 'value'),
+    Input('input-subrun-high', 'value'),
     # Input('crossfilter-hover-column', 'value'),
     # Input('crossfilter-year--slider', 'value')
     )
 def update_graph(xaxis_column_name, yaxis_column_name,
-                 xaxis_type, yaxis_type):
+                 xaxis_type, yaxis_type, runlow, runhigh, subrunlow,subrunhigh):
     # dff = df[df['Year'] == year_value]
     app.logger.error("Rendering data on graph...")
-    dff = df.df
+    dff = filter_df_by_run(df, runlow,runhigh, subrunlow,subrunhigh)
 
     fig = px.scatter(
         x=dff[xaxis_column_name],
@@ -239,13 +261,20 @@ def update_graph(xaxis_column_name, yaxis_column_name,
 
     return fig
     
-# @dashboard.callback(
-#     Output('profile-figure', 'figure'),
-#     # Input('runlog-datatable', ''),
-#     Input('runlog-datatable', 'derived_virtual_row_ids'),
-#     Input('runlog-datatable', 'selected_row_ids'),
-#     Input('runlog-datatable', 'active_cell')
-# )
+def filter_df_by_run(df, runlow,runhigh, subrunlow,subrunhigh):
+    dff = df.df.copy()
+    print(runlow,runhigh, subrunlow,subrunhigh)
+    if(runlow is not None):
+        dff = dff.loc[dff['run'] >= runlow]
+    if(runhigh is not None):
+        dff = dff.loc[dff['run'] <= runhigh]
+    if(subrunlow is not None):
+        dff = dff.loc[dff['subrun'] >= subrunlow]
+    if(subrunhigh is not None):
+        dff = dff.loc[dff['subrun'] <= subrunhigh]
+
+    return dff
+
 def render_display():
     '''
         Updates the displayed scan based on the run/subrun which was clicked

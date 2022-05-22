@@ -148,7 +148,7 @@ def do_post_processing(run,subrun):
                     dfi['beam_mean_x'] = data[0]
                     dfi['beam_mean_y'] = data[1]
                     dfi['beam_sigma_x'] = data[2]
-                    dfi['beam_sigma_x'] = data[2]
+                    dfi['beam_sigma_y'] = data[3]
                     dfi['beam_norm'] = data[4]
                     dfi['beam_timestamp'] = data[5]
 
