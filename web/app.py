@@ -17,6 +17,7 @@ from flask import current_app as app
 from dash.dependencies import Input, Output
 from dash import html, dash, dash_table, dcc
 import plotly.express as px
+import plot
 
 FIG_DATATABLE = None
 FIG_PLOTS = None
@@ -28,7 +29,6 @@ app = Flask(__name__, template_folder='static')
 dashboard, df = create_dashboard(app)
 
 # logging.t
-
 
 @dashboard.callback(
     Output('runlog-datatable', 'data'), Output('runlog-datatable', 'columns'),
@@ -356,7 +356,7 @@ def update_display(run, subrun):
     # dfi = df.df.loc(df.df['run'] == int(run)).loc(df.df['subrun'] == int(subrun))
     outdir = make_outdir(run,subrun)
     csvfile = os.path.join(outdir,'profile.csv')
-    print(csvfile)
+    # print(csvfile)
     if(not os.path.exists(csvfile)):
         print("ERROR: CSV file not found")
         return px.scatter([],[])
@@ -375,7 +375,7 @@ def update_display(run, subrun):
         y_xs.append(xi)
         y_ys.append(dfii[2].sum())
 
-    print(dfi.head)
+    # print(dfi.head)
     return (
         (px.scatter(
             x=dfi[0],
@@ -396,12 +396,37 @@ def update_display(run, subrun):
         ),
     )
     
-    # return px.scatter([1,2,3], [3,4,5])
+'''
+----------------------------------------------------------------------------------
+Plot the 2D histogram of energy vs. time
+----------------------------------------------------------------------------------
+'''
+@dashboard.callback(
+    Output('times-display-single', 'figure'),
+    Input("crossfilter-run-select", 'value'),
+    Input("crossfilter-subrun-select", 'value'),
+    Input("profile-plot", 'clickData'),
+)
+def make_single_plot(run, subrun, data):
+    print(run, subrun, data)
+    return px.scatter([run], [subrun])
 
-    
+@dashboard.callback(
+    Output('times-display-global', 'figure'),
+    Input("crossfilter-run-select", 'value'),
+    Input("crossfilter-subrun-select", 'value'),
+)
+def make_global_plot(run, subrun):
+    print(run, subrun)
+    # return px.scatter(x=[1,2,3, run], y=[4,5,6, subrun])
+    return plot.make_global_amplitude_time_plot(run,subrun)
 
-def make_profile(infile):
-    return html.Div("todo")
+
+'''
+----------------------------------------------------------------------------------
+Set up routes for the flask app
+----------------------------------------------------------------------------------
+'''
 
 @app.route("/generic.html")
 def generic():
