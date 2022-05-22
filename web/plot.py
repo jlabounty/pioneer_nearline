@@ -57,7 +57,7 @@ def make_global_amplitude_time_plot(run,subrun, key='AvT'):
         return histogram_as_px(h)
         # return (px.scatter(x=[1], y=[2]))
     else:
-        return (px.scatter(x=[0], y=[0]))
+        return (px.scatter(title='File not found'))
 
 def histogram_as_px(h):
     # print('file found', this_file)
@@ -114,3 +114,4 @@ def get_subrun_data_file_from_position(run,subrun,data):
 
     else:
         print("Warning: data file not found")
+        return px.scatter(title='File not found')

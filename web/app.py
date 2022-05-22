@@ -162,11 +162,13 @@ def render_runlog_scatter():
                     )
                 ], style={'width': '100%', 'display': 'inline-block', 'padding': '10 20'}),
                 html.Div([
-                    dcc.Graph(id='x-time-series'),
-                ], style={'display': 'inline-block', 'width': '49%'}),
-                html.Div([
-                    dcc.Graph(id='y-time-series'),
-                ], style={'display': 'inline-block', 'width': '49%'}),
+                    html.Div([
+                        dcc.Graph(id='x-time-series'),
+                    ], style={'display': 'inline-block', 'width': '49%', 'padding': '10 20'}),
+                    html.Div([
+                        dcc.Graph(id='y-time-series'),
+                    ], style={'display': 'inline-block', 'width': '49%', 'padding': '10 20'}),
+                ], style={'width': '100%', 'display': 'inline-block', 'padding': '10 20'}),
             ])
         ]
     )
@@ -430,9 +432,7 @@ Plot the 2D histogram of energy vs. time
 def make_single_plot(run, subrun, data):
     print(run, subrun, data)
     return plot.get_subrun_data_file_from_position(run,subrun,data)
-    print(f'{datafile=}')
-    return px.scatter([run], [subrun])
-
+    
 @dashboard.callback(
     Output('times-display-global', 'figure'),
     Input("crossfilter-run-select", 'value'),
