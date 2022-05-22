@@ -1,5 +1,6 @@
 # from process_data import make_indir_outdir
 # from pickle import NONE
+# import csv
 from dashboard import create_dashboard
 import flask
 from flask import Flask
@@ -35,6 +36,9 @@ dashboard, df = create_dashboard(app)
     Input("refresh-df", 'n_clicks'),
 )
 def refresh_runlog(click):
+    '''
+        When this function is called, the runlog table will refresh with the latest entries
+    '''
     app.logger.error(f"refreshing!!! {click}")
     df.refresh()
     return (df.df.to_dict('records'), 
@@ -54,15 +58,19 @@ def refresh_runlog(click):
     Input('tabs', 'value')
 )
 def render_tab_content(value):
+    '''
+        Take the value of the tab selected and use that to render the appropriate content
+            - Run Conditions vs. Plots vs. Scatter
+    '''
     app.logger.error("Rendering tab content...")
     if(value == 'runlog'):
         global FIG_DATATABLE
         # print( FIG_DATATABLE)
         if(FIG_DATATABLE is None):
-            print('ding!!!')
+            # print('ding!!!')
             FIG_DATATABLE = render_datatable()
-        else:
-            print("dong")
+        # else:
+            # print("dong")
         return FIG_DATATABLE
     elif(value == 'plot'):
         global FIG_PLOTS
@@ -237,7 +245,9 @@ def update_x_timeseries(yaxis_column_name, axis_type,runlow, runhigh, subrunlow,
     )
 def update_graph(xaxis_column_name, yaxis_column_name,
                  xaxis_type, yaxis_type, runlow, runhigh, subrunlow,subrunhigh):
-    # dff = df[df['Year'] == year_value]
+    '''
+        Updates the scatter plot
+    '''
     app.logger.error("Rendering data on graph...")
     dff = filter_df_by_run(df, runlow,runhigh, subrunlow,subrunhigh)
 
@@ -246,7 +256,7 @@ def update_graph(xaxis_column_name, yaxis_column_name,
         y=dff[yaxis_column_name],
         # hover_name=dff[indicator_name]
     )
-    print(dff[xaxis_column_name])
+    # print(dff[xaxis_column_name])
 
     # fig.update_traces(customdata=dff[dff['Indicator Name'] == yaxis_column_name]['Country Name'])
 
@@ -257,8 +267,11 @@ def update_graph(xaxis_column_name, yaxis_column_name,
     return fig
     
 def filter_df_by_run(df, runlow,runhigh, subrunlow,subrunhigh):
+    '''
+        Filters a ReloadableDF Object by run/subrun and returns a copy
+    '''
     dff = df.df.copy()
-    print(runlow,runhigh, subrunlow,subrunhigh)
+    # print(runlow,runhigh, subrunlow,subrunhigh)
     if(runlow is not None):
         dff = dff.loc[dff['run'] >= runlow]
     if(runhigh is not None):
@@ -330,17 +343,13 @@ def render_display():
         )
     )
 
-def make_outdir(run,subrun):
-    return f'../processed/run{run}/data/subrun{subrun}/'
-
 # @dashboard.callback()
 
-def get_profile_pdf(subrundir):
-    thispath = os.path.join('assets',subrundir[3:], 'profile.pdf')
-    print(thispath)
-    if(not os.path.exists(thispath)):
-        return None
-    return thispath
+'''
+----------------------------------------------------------------------------------
+Plot the profiles for this subrun (Plots tab)
+----------------------------------------------------------------------------------
+'''
 
 @dashboard.callback(
     Output('profile-plot', 'figure'),
@@ -351,6 +360,9 @@ def get_profile_pdf(subrundir):
     Input("crossfilter-subrun-select", 'value')
 )
 def update_display(run, subrun):
+    '''
+        Updates the live display of the beam profile
+    '''
 
     # get the associated data file (if it exists, if not create it)
     # dfi = df.df.loc(df.df['run'] == int(run)).loc(df.df['subrun'] == int(subrun))
@@ -362,6 +374,7 @@ def update_display(run, subrun):
         return px.scatter([],[])
 
     dfi = pandas.read_csv(csvfile, header=None, skiprows=1)
+    xbar, ybar, sigx, sigy, norm, _ = get_beam_properties(csvfile)
     
     x_xs = []
     x_ys = []
@@ -384,15 +397,20 @@ def update_display(run, subrun):
             # hover_data=[0,1,2,3,4],
             # marker_symbol='s',
             # mode='markers'
-            width=500, height=400,
+            width=500, height=500,
+            title=f'Integral: {norm:.3f}',
             labels={"x":'x-position [mm]', 'y':'y-position [mm]'}
         )),
         get_profile_pdf( outdir ),
         (px.scatter(
-            x=x_xs, y=x_ys, width=500, height=400, labels={'x':'x-position', 'y':'Beam Amplitude'})
+            x=x_xs, y=x_ys, width=500, height=500, 
+            title=f'Mean x: {xbar:.3f} | Sigma x: {sigx:.3f}',
+            labels={'x':'x-position', 'y':'Beam Amplitude'})
         ),
         (px.scatter(
-            x=y_xs, y=y_ys, width=500, height=400, labels={'x':'y-position', 'y':'Beam Amplitude'})
+            x=y_xs, y=y_ys, width=500, height=500, 
+            title=f'Mean x: {ybar:.3f} | Sigma x: {sigy:.3f}',
+            labels={'x':'y-position', 'y':'Beam Amplitude'})
         ),
     )
     
@@ -401,6 +419,8 @@ def update_display(run, subrun):
 Plot the 2D histogram of energy vs. time
 ----------------------------------------------------------------------------------
 '''
+
+
 @dashboard.callback(
     Output('times-display-single', 'figure'),
     Input("crossfilter-run-select", 'value'),
@@ -409,6 +429,8 @@ Plot the 2D histogram of energy vs. time
 )
 def make_single_plot(run, subrun, data):
     print(run, subrun, data)
+    return plot.get_subrun_data_file_from_position(run,subrun,data)
+    print(f'{datafile=}')
     return px.scatter([run], [subrun])
 
 @dashboard.callback(
@@ -417,16 +439,52 @@ def make_single_plot(run, subrun, data):
     Input("crossfilter-subrun-select", 'value'),
 )
 def make_global_plot(run, subrun):
-    print(run, subrun)
+    # print(run, subrun)
     # return px.scatter(x=[1,2,3, run], y=[4,5,6, subrun])
     return plot.make_global_amplitude_time_plot(run,subrun)
 
 
 '''
 ----------------------------------------------------------------------------------
+Helper functions
+----------------------------------------------------------------------------------
+'''
+
+def make_outdir(run,subrun=None):
+    '''
+        returns the path to the processed files based on the run and subrun numbers
+    '''
+    if(subrun is None):
+        return f'../processed/run{run}/'
+    else:
+        return f'../processed/run{run}/data/subrun{subrun}/'
+
+def get_profile_pdf(subrundir):
+    '''
+        Returns the path to the profile PDF automatically produced per subrun
+    '''
+    thispath = os.path.join('assets',subrundir[3:], 'profile.pdf')
+    print(thispath)
+    if(not os.path.exists(thispath)):
+        return None
+    return thispath
+
+def get_beam_properties(csvfile):
+    '''
+        Extracts the fitted mean/stdev from the beam csv file
+    '''
+    with open(csvfile, 'r') as f:
+        for data in f:
+            data = [float(x) for x in data.split(",")]
+            return data
+
+'''
+----------------------------------------------------------------------------------
 Set up routes for the flask app
 ----------------------------------------------------------------------------------
 '''
+
+
 
 @app.route("/generic.html")
 def generic():

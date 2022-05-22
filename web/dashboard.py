@@ -54,7 +54,8 @@ def create_dashboard(server, **kwargs):
                 ], href='/'),
             html.Button('Refresh', id='refresh-df'),
             html.Div(children='''
-                Dash: A web application framework for your data.
+                
+                
             '''),
             dcc.Tabs(
                 id='tabs',
