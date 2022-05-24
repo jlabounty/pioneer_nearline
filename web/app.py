@@ -24,10 +24,11 @@ FIG_DATATABLE = None
 FIG_PLOTS = None
 FIG_SCATTER = None
 
-BASE_DIR = '/home/jlab/github/pioneer_nearline/web/static/'
+# BASE_DIR = '/home/jlab/github/pioneer_nearline/web/static/'
+BASE_DIR = '/home/pioneer/github/pioneer_nearline/web/static/'
 
-# EPICS_FILE='/data/EpicsLogs/magnets.log'
-EPICS_FILE='/home/jlab/github/pioneer_nearline/data/magnets.log'
+EPICS_FILE='/data/EpicsLogs/magnets.log'
+# EPICS_FILE='/home/jlab/github/pioneer_nearline/data/magnets.log'
 
 
 app = Flask(__name__, template_folder='static')
@@ -567,4 +568,5 @@ def jsroot():
     return render_template('web/jsroot.html')
 
 if __name__ == "__main__":
-    app.run(host="localhost", port=1234, debug=True)
+    # app.run(host="localhost", port=1234, debug=True)
+    app.run(host="0.0.0.0", port=1234, debug=True) 
