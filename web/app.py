@@ -493,7 +493,7 @@ Set up routes for the flask app
 @app.route('/epics')
 def epics():
     df = pandas.read_csv(EPICS_FILE, sep=' ')
-    df.sort_values(by=df.columns[0], inplace=True)
+    df.sort_values(by=df.columns[0], inplace=True, ascending=False)
     df = df[pandas.to_numeric(df['AHSW41:IST:2'], errors='coerce').notnull()]
     # return (df.df.to_dict('records'), 
     #        [{"name": i, "id": i, "hidable":True, "selectable":True} for i in df.df.columns])
