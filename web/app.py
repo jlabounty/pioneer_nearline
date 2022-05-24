@@ -491,10 +491,15 @@ Set up routes for the flask app
 
 
 @app.route('/epics')
-def epics():
+def epics(): #TODO: Make this display nicer
     df = pandas.read_csv(EPICS_FILE, sep=' ')
     df.sort_values(by=df.columns[0], inplace=True, ascending=False)
     df = df[pandas.to_numeric(df['AHSW41:IST:2'], errors='coerce').notnull()]
+    # df.set_table_styles([  # create internal CSS classes
+    #     {'selector': '.true', 'props': 'background-color: #e6ffe6;'},
+    #     {'selector': '.false', 'props': 'background-color: #ffe6e6;'},
+    # ], overwrite=False)
+    df.style.highlight_max()
     # return (df.df.to_dict('records'), 
     #        [{"name": i, "id": i, "hidable":True, "selectable":True} for i in df.df.columns])
 
@@ -566,6 +571,10 @@ def get_run_data(run1, run2):
 @app.route("/jsroot")
 def jsroot():
     return render_template('web/jsroot.html')
+
+@app.route("/webcam")
+def webcam_redirect():
+    return flask.redirect('http://pioneer-analysis.psi.ch:1236')
 
 if __name__ == "__main__":
     # app.run(host="localhost", port=1234, debug=True)
