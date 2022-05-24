@@ -23,7 +23,11 @@ import plot
 FIG_DATATABLE = None
 FIG_PLOTS = None
 FIG_SCATTER = None
+
 BASE_DIR = '/home/jlab/github/pioneer_nearline/web/static/'
+
+# EPICS_FILE='/data/EpicsLogs/magnets.log'
+EPICS_FILE='/home/jlab/github/pioneer_nearline/data/magnets.log'
 
 
 app = Flask(__name__, template_folder='static')
@@ -485,6 +489,15 @@ Set up routes for the flask app
 '''
 
 
+@app.route('/epics')
+def epics():
+    df = pandas.read_csv(EPICS_FILE, sep=' ')
+    df.sort_values(by=df.columns[0], inplace=True)
+    df = df[pandas.to_numeric(df['AHSW41:IST:2'], errors='coerce').notnull()]
+    # return (df.df.to_dict('records'), 
+    #        [{"name": i, "id": i, "hidable":True, "selectable":True} for i in df.df.columns])
+
+    return df.head(100).to_html(header='true', table_id='epics', float_format=':.2f'.format)
 
 @app.route("/generic.html")
 def generic():

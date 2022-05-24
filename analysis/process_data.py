@@ -5,6 +5,8 @@ import time
 import pandas
 import json
 
+from get_epics_info_from_log import combine_log_files
+
 '''
     Automatically processes the newly created files through a simple analysis chain. Runs Patricks unpacking over
     every new file, produces an output file, and then creates a set of histograms from those
@@ -12,6 +14,7 @@ import json
 DATA_DIR = '../../data/'
 OUTPUT_DIR= '../../processed/'
 RUN_DB = '../../processed/run_db.csv'
+EPICS_FILE = '' #TODO: Add path to epics data
 
 def make_outdir(indir:str): 
     return indir.replace(DATA_DIR, OUTPUT_DIR)
@@ -41,6 +44,9 @@ def process_new_files():
             process_subrun(x)
         except:
             print("ERROR: Unable to process subrun", x)
+
+    # every time the function is called, redo the epics information for the new subruns
+    combine_log_files(RUN_DB, EPICS_FILE)
 
 def process_subrun(indir):
     '''
@@ -145,11 +151,11 @@ def do_post_processing(run,subrun):
                     # print(data)
                     data = [float(x) for x in data.split(",")]
                     print('This beam data:', data)
-                    dfi['beam_mean_x'] = data[0]
-                    dfi['beam_mean_y'] = data[1]
-                    dfi['beam_sigma_x'] = data[2]
-                    dfi['beam_sigma_y'] = data[3]
-                    dfi['beam_norm'] = data[4]
+                    dfi['beam_mean_x']    = data[0]
+                    dfi['beam_mean_y']    = data[1]
+                    dfi['beam_sigma_x']   = data[2]
+                    dfi['beam_sigma_y']   = data[3]
+                    dfi['beam_norm']      = data[4]
                     dfi['beam_timestamp'] = data[5]
 
                     break
@@ -195,4 +201,4 @@ if __name__ == '__main__':
         # if(sys.argv[1]):
         process_new_files()
     else:
-        autoprocess_files(5) # minutes
+        autoprocess_files(2) # minutes
