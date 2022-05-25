@@ -105,7 +105,7 @@ def get_scan_points(scan:MagnetScan, index:int, return_to_initial=True):
         minpower = scan.nominal_sets[index]
         maxpower = scan.nominal_sets[index]
     print(npts, minpower, maxpower)
-    points = list(np.linspace(minpower, maxpower, npts))
+    points = list(round(x,3) for x in np.linspace(minpower, maxpower, npts))
     if(np.amax(np.abs(points)) >= MAGNET_LIMIT ):
         raise ValueError(f"Warning: Magnet setpoints nearline limit ({MAGNET_LIMIT}): {points}")
 
@@ -159,23 +159,66 @@ def export_triplet_scan(scan:MagnetScan):
     '''
     # TODO: Fix to make list format for hysteresis points
     export = {'set_points':[]}
-    outer_points = (get_scan_points(scan,0),get_scan_points(scan,2))
+    outer_points = (get_scan_points(scan,0, False),get_scan_points(scan,2, False))
+    inner_points = get_scan_points(scan,1, False)
+
+    outer_points_hyst = (get_scan_points(scan,0)[-2:],get_scan_points(scan,2)[-2:])
+    inner_points_hyst = get_scan_points(scan,1)[-2:]
     
     if((len(outer_points[0]) != len(outer_points[1])) or (tuple(scan.scan_points[0]) != tuple(scan.scan_points[2]))):
         raise ValidationError('First and last points do not have the same Npoints / Range')
-    inner_points = get_scan_points(scan,1)
     if(scan.triplet_type == 1):
+        this_export = []
         for i, trip1 in enumerate(inner_points):
             for j, trip0 in enumerate(outer_points[0]):
                 trip2 = outer_points[1][j]
-                export['set_points'].append(
-                    {
-                        scan.magnet_name[0]: trip0,
-                        scan.magnet_name[1]: trip1,
-                        scan.magnet_name[2]: trip2,
-                        "settling_time_s": scan.settling_time
-                    }
-                )
+                
+                if( i == 0 and j == 0 ):
+                    # hysteresis points for both magnets
+                    this_export.append(
+                        {
+                            scan.magnet_name[0]: trip0,
+                            scan.magnet_name[1]: trip1,
+                            scan.magnet_name[2]: trip2,
+                            "settling_time_s": scan.settling_time
+                        }
+                    )
+                elif( i == 0 ):
+                    # skip the first col, the rest of the hysteresis points
+                    continue
+                else:
+                    this_export.append(
+                            {
+                            scan.magnet_name[0]: trip0,
+                            scan.magnet_name[1]: trip1,
+                            scan.magnet_name[2]: trip2,
+                            "settling_time_s": scan.settling_time,
+                            "wow":(i,j)
+                        }
+                    )
+                    if(j != 0):
+                        export['set_points'].append(this_export)
+                        this_export = []
+                    
+        export['set_points'].append(
+            [
+                {
+                    scan.magnet_name[0]: outer_points_hyst[0][-2],
+                    scan.magnet_name[1]: inner_points_hyst[-2],
+                    scan.magnet_name[2]: outer_points_hyst[1][-2],
+                    "settling_time_s": scan.settling_time,
+                    # "wow":(i,j)
+                },
+                {
+                    scan.magnet_name[0]: outer_points_hyst[0][-1],
+                    scan.magnet_name[1]: inner_points_hyst[-1],
+                    scan.magnet_name[2]: outer_points_hyst[1][-1],
+                    "settling_time_s": scan.settling_time,
+                    # "wow":(i,j)
+                },
+
+            ]
+        )
     else:
         raise NotImplementedError()
     return export
@@ -205,6 +248,7 @@ def export_scans(infile, outfile):
     if('.json' not in outfile):
         outfile += '.json'
     for i,x in enumerate(exported_scans):
+        print(f"Exporting scan with {len(x['set_points'])} points")
         with open(outfile.replace('.json', f'_{i:02}.json'), 'w') as fout:
             json.dump(x, fout, indent=1)
 
