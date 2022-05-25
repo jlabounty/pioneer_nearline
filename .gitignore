@@ -131,3 +131,5 @@ data/**
 processed/**
 old/**
 analysis/temp.cfg
+magnet_iteration/*.json
+analysis/offline/data
