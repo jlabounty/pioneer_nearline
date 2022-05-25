@@ -193,7 +193,6 @@ def export_triplet_scan(scan:MagnetScan):
                             scan.magnet_name[1]: trip1,
                             scan.magnet_name[2]: trip2,
                             "settling_time_s": scan.settling_time,
-                            "wow":(i,j)
                         }
                     )
                     if(j != 0):
@@ -207,14 +206,12 @@ def export_triplet_scan(scan:MagnetScan):
                     scan.magnet_name[1]: inner_points_hyst[-2],
                     scan.magnet_name[2]: outer_points_hyst[1][-2],
                     "settling_time_s": scan.settling_time,
-                    # "wow":(i,j)
                 },
                 {
                     scan.magnet_name[0]: outer_points_hyst[0][-1],
                     scan.magnet_name[1]: inner_points_hyst[-1],
                     scan.magnet_name[2]: outer_points_hyst[1][-1],
                     "settling_time_s": scan.settling_time,
-                    # "wow":(i,j)
                 },
 
             ]
