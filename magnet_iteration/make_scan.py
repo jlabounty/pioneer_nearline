@@ -23,14 +23,14 @@
     }
 '''
 
-from ast import parse
+# from ast import parse
 from dataclasses import dataclass
 import json
 from jsonschema import ValidationError
-import pandas 
+# import pandas 
 import numpy as np 
 import sys
-import os 
+# import os 
 
 @dataclass
 class MagnetScan:
