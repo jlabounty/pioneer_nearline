@@ -1,0 +1,33 @@
+{
+  "set_points": [
+    [
+      {
+        "QSB41": 100.0,
+        "QSB42": 100.0,
+        "QSB43": 100.0,
+        "ASC41": 200,
+        "settling_time_s": 1
+      }
+    ],
+    [
+      {
+        "ASC41": 100,
+        "settling_time_s": 1
+      }
+    ],
+    [
+      {
+        "ASC41": -500,
+        "settling_time_s": 1
+      },
+      {
+        "ASC41": 500,
+        "settling_time_s": 1
+      },
+      {
+        "ASC41": 300,
+        "settling_time_s": 1
+      }
+    ]
+  ]
+}
