@@ -62,7 +62,7 @@ def load_magnet_names(infile):
 VALID_SCAN_TYPE = {'SINGLET':1, 'TRIPLET':3, 'PARAM_SPACE':0}
 VALID_MAGNET_NAME = load_magnet_names('config/magnets.json')
 VALID_APPROACH_FROM = {'BELOW':-1, 'ABOVE':1}
-VALID_POINT_TYPE = {"REL":0, "ABS":1}
+VALID_POINT_TYPE = {"REL":0, "ABS":1, "SPEC":2}
 VALID_TRIPLET_TYPE = {"DIAGONAL":0, "PLANE":1}
 
 MAGNET_LIMIT = 100
@@ -73,7 +73,7 @@ def parse_single_scan(raw):
     for x in raw['magnet_name']:
         if x not in VALID_MAGNET_NAME:
             raise ValueError(f'Magnet not found or not writable: "{x}"')
-    return MagnetScan(
+    thisscan =  MagnetScan(
         VALID_SCAN_TYPE[raw['scan_type']],
         [x for x in raw['magnet_name'] if x in VALID_MAGNET_NAME],# else raise ValueError()],
         raw['nominal_sets'],
@@ -81,6 +81,12 @@ def parse_single_scan(raw):
         [VALID_POINT_TYPE[x] for x in raw['point_type']],
         raw['scan_points']
     )
+    if('triplet_type' in raw):
+        thisscan.triplet_type = raw['triplet_type']
+    if('settling_time' in raw):
+        thisscan.settling_time = raw['settling_time']
+    print(thisscan)
+    return thisscan
 
 def parse_config_create_scan(raw_scan):
     '''
@@ -102,13 +108,11 @@ def get_scan_points(scan:MagnetScan, index:int, return_to_initial=True):
         minpower = scan.nominal_sets[index] * scan.scan_points[index][1]
         maxpower = scan.nominal_sets[index] * scan.scan_points[index][2]
     else:
-        minpower = scan.nominal_sets[index]
-        maxpower = scan.nominal_sets[index]
+        minpower = scan.scan_points[index][1]
+        maxpower = scan.scan_points[index][2]
     print(npts, minpower, maxpower)
     points = list(round(x,3) for x in np.linspace(minpower, maxpower, npts))
-    if(np.amax(np.abs(points)) >= MAGNET_LIMIT ):
-        raise ValueError(f"Warning: Magnet setpoints nearline limit ({MAGNET_LIMIT}): {points}")
-
+    
     points.sort()
     if(scan.approach_from[index] == 1):
         # print('reverse')
@@ -116,13 +120,18 @@ def get_scan_points(scan:MagnetScan, index:int, return_to_initial=True):
 
     # add the hysteresis points
     # ten times the distance between points 0 and 1 should be fine
-    diff = (points[0] - points[1])*10.0
+    diff = (points[0] - points[1])*5.0
     points = [points[0] + diff] + points 
     print(diff, points[:3])
 
     print(points)
     if(np.abs(points[1]) <= np.abs(points[2])):
         raise ValueError(f"ERROR: You should have your points approach 0: {points[0]} -> {points[1]}")
+
+    if(np.amax(np.abs(points)) >= MAGNET_LIMIT ):
+        error = input(f"Warning: Magnet setpoints nearline limit ({MAGNET_LIMIT}): {points}. Is this ok? (y/n)")
+        if('y' not in error.lower()):
+            raise ValueError(f"Warning: Magnet setpoints nearline limit ({MAGNET_LIMIT}): {points}")
 
     
     # TODO: Add return to nominal logic
@@ -153,6 +162,15 @@ def export_singlet_scan(scan:MagnetScan):
 
     return export
 
+def isdiag(dims, i, j):
+    if(np.abs(i) == np.abs(j)):
+        return True 
+    # elif(np.abs):
+        
+    # else:
+    return False
+
+
 def export_triplet_scan(scan:MagnetScan):
     '''
         Exports a TRIPLET magnet scan to the wavedaq format
@@ -167,7 +185,13 @@ def export_triplet_scan(scan:MagnetScan):
     
     if((len(outer_points[0]) != len(outer_points[1])) or (tuple(scan.scan_points[0]) != tuple(scan.scan_points[2]))):
         raise ValidationError('First and last points do not have the same Npoints / Range')
-    if(scan.triplet_type == 1):
+    dimensions = (scan.scan_points[0][0], scan.scan_points[1][0])
+    if(scan.triplet_type == 0): # Diagonal 
+        # for a diagonal scan, take a subset of the full plane
+        if(dimensions[1] != dimensions[0]):
+            raise ValueError(f'Cannot do diagonal scan with uneven x and y points: {dimensions}')
+
+    if(scan.triplet_type in [0,1]): # Plane scan
         this_export = []
         for i, trip1 in enumerate(inner_points):
             for j, trip0 in enumerate(outer_points[0]):
@@ -187,14 +211,17 @@ def export_triplet_scan(scan:MagnetScan):
                     # skip the first col, the rest of the hysteresis points
                     continue
                 else:
-                    this_export.append(
-                            {
-                            scan.magnet_name[0]: trip0,
-                            scan.magnet_name[1]: trip1,
-                            scan.magnet_name[2]: trip2,
-                            "settling_time_s": scan.settling_time,
-                        }
-                    )
+                    if((isdiag(dimensions, i, j) or j==0) or (scan.triplet_type == 1)):
+                        # print('hello', i,j)
+                        this_export.append(
+                                {
+                                scan.magnet_name[0]: trip0,
+                                scan.magnet_name[1]: trip1,
+                                scan.magnet_name[2]: trip2,
+                                "settling_time_s": scan.settling_time,
+                                # 'wow':[i,j]
+                            }
+                        )
                     if(j != 0):
                         export['set_points'].append(this_export)
                         this_export = []
@@ -218,7 +245,12 @@ def export_triplet_scan(scan:MagnetScan):
         )
     else:
         raise NotImplementedError()
+    
+    
+        
+    
     return export
+
 def export_scan_to_wavedaq_format(scan:MagnetScan):
     '''
         Exports the MagnetScan object to a format which can be parsed by the WaveDAQ
@@ -228,6 +260,7 @@ def export_scan_to_wavedaq_format(scan:MagnetScan):
         return export_singlet_scan(scan)
     elif(scan.scan_type == 3):
         return export_triplet_scan(scan)
+    # elif(scan.scan_type == )
     else:
         raise NotImplementedError()
 
