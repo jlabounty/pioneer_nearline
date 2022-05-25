@@ -79,6 +79,36 @@ This specifies the three magnets which will be changed (`"QSK41","QSK42","QSK43"
 
 ---
 
+The output file format should be like:
+
+```json
+{
+    "set_points":[
+        {
+            // settings 1
+        },
+        {
+            // settings 2
+        },
+        ...
+    ]
+}
+```
+
+where each of the settings `dict`s are something like
+
+```json
+{
+    "QSK41":-17.0,
+    "settling_time_s":10
+}
+```
+
+This will set `QSK41` to `-17.0` and wait 10 secondsg before doing a SiMon scan.
+
+
+---
+
 Once you have the output file, you can copy it to the `pioneer-daq` machine in the folder: `/home/pioneer/simon/config/epics/`. From there, it can be read by the WaveDAQ system.
 
 
