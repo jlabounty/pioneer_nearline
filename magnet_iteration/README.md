@@ -15,6 +15,7 @@ The scripts should also take into account the hysteresis of the magnets (i.e. al
 The code can be run by doing:
 
 ```bash
+cd /PATH/TO/pioneer_nearline/magnet_iteration/
 python3 make_scan.py input.json output.json
 ```
 
@@ -26,7 +27,7 @@ conda env create -n magnets python=3.10 numpy matplotlib pandas
 
 ---
 
-The script will write a file (`output.json`) which is compatable with the WaveDAQ using the scans defined in `input.json`. If you have an invalid input format, or there is some warning (you may be too close to the magnet current limit) The input file format is as follows:
+The script will write a file (`output.json`) which is compatable with the WaveDAQ using the scans defined in `input.json`. If you have an invalid input format, or there is some warning (you may be too close to the magnet current limit) you will get an error on the command line. The input file format is as follows:
 
 For scanning through single magnet, you can have a file as follows:
 

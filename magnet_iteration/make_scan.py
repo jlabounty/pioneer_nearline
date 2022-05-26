@@ -59,7 +59,7 @@ def load_magnet_names(infile):
 
     return magnet_names
 
-VALID_SCAN_TYPE = {'SINGLET':1, 'TRIPLET':3, 'PARAM_SPACE':0}
+VALID_SCAN_TYPE = {'SINGLET':1, 'DOUBLET':2, 'TRIPLET':3, 'PARAM_SPACE':0}
 VALID_MAGNET_NAME = load_magnet_names('config/magnets.json')
 VALID_APPROACH_FROM = {'BELOW':-1, 'ABOVE':1}
 VALID_POINT_TYPE = {"REL":0, "ABS":1, "SPEC":2}
@@ -171,6 +171,63 @@ def isdiag(dims, i, j):
     return False
 
 
+def export_doublet_scan(scan:MagnetScan):
+    export = {'set_points':[]}
+
+    outer_points = get_scan_points(scan,0, False)
+    inner_points = get_scan_points(scan,1, False)
+
+    outer_points_hyst = get_scan_points(scan,0)[-2:]
+    inner_points_hyst = get_scan_points(scan,1)[-2:]
+
+    this_export = []
+    for i,x in enumerate(outer_points):
+        for j,y in enumerate(inner_points):
+            if( i == 0 and j == 0 ):
+                # hysteresis points for both magnets
+                this_export.append(
+                    {
+                        scan.magnet_name[0]: x,
+                        scan.magnet_name[1]: y,
+                        # scan.magnet_name[2]: trip2,
+                        "settling_time_s": scan.settling_time
+                    }
+                )
+            elif( i == 0 ):
+                # skip the first col, the rest of the hysteresis points
+                continue
+            else:
+                    this_export.append(
+                            {
+                            scan.magnet_name[0]: x,
+                            scan.magnet_name[1]: y,
+                            # scan.magnet_name[2]: trip2,
+                            "settling_time_s": scan.settling_time,
+                            # 'wow':[i,j]
+                        }
+                    )
+                    if(j != 0):
+                        export['set_points'].append(this_export)
+                        this_export = []
+    
+    export['set_points'].append(
+            [
+                {
+                    scan.magnet_name[0]: outer_points_hyst[-2],
+                    scan.magnet_name[1]: inner_points_hyst[-2],
+                    "settling_time_s": scan.settling_time,
+                },
+                {
+                    scan.magnet_name[0]: outer_points_hyst[-1],
+                    scan.magnet_name[1]: inner_points_hyst[-1],
+                    "settling_time_s": scan.settling_time,
+                },
+
+            ]
+        )
+
+    return export
+
 def export_triplet_scan(scan:MagnetScan):
     '''
         Exports a TRIPLET magnet scan to the wavedaq format
@@ -244,10 +301,7 @@ def export_triplet_scan(scan:MagnetScan):
             ]
         )
     else:
-        raise NotImplementedError()
-    
-    
-        
+        raise NotImplementedError() 
     
     return export
 
@@ -258,6 +312,8 @@ def export_scan_to_wavedaq_format(scan:MagnetScan):
     '''
     if(scan.scan_type == 1):
         return export_singlet_scan(scan)
+    elif(scan.scan_type == 2):
+        return export_doublet_scan(scan)
     elif(scan.scan_type == 3):
         return export_triplet_scan(scan)
     # elif(scan.scan_type == )
